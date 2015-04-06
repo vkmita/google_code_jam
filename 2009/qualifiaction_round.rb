@@ -2,7 +2,10 @@ require 'benchmark'
 require 'byebug'
 
 puts Benchmark.realtime {
-  lines = File.new("A-large-practice.in", "r").read.split("\n")
+  input_file = File.new(ARGV[0], 'r')
+  output_file = File.new(input_file.to_path.sub(/\.in\z/, '.out'), 'w')
+
+  lines = input_file.read.split("\n")
 
   length_of_words, number_of_words, number_of_cases = lines.shift.split(' ').map(&:to_i)
 
@@ -18,31 +21,39 @@ puts Benchmark.realtime {
     end
   end
 
+  output_text = ''
+
   cases.each_with_index do |_case, i|
     word_number_map = {}
     # get character possibilities
-    character_possibilities = _case.scan(/(?<=\().*?(?=\))|\D/).map { |g| g.each_char.to_a }
-
-
+    character_possibilities = _case.scan(/(?<=\().*?(?=\))|[^\(\)]/).map { |g| g.each_char.to_a }
+    count = 0
+    done = nil
     character_possibilities.each_with_index do |characters, index|
+      break if done
       characters.each do |character|
-
         if words = index_character_word_map[index][character]
           words.each do |word|
-            word_number_map[word] = word_number_map[word].to_i + 1
+            if (current_count = (word_number_map[word] || 0) + 1) != length_of_words
+              word_number_map[word] = current_count
+            else
+              count += 1
+            end
           end
         else
+          done = 0
           break
         end
       end
     end
 
-    debugger
-
-    count ||= word_number_map.values.count { |number| number == length_of_words  }
-
-    puts "Case ##{i + 1}: #{count}"
+    output_text << "Case ##{i + 1}: #{done || count}\n"
   end
+
+  output_file.write(output_text)
+  output_file.close
 }
+
+
 
 
